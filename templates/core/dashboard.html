@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-T">
+    <title>Мои Финансы - Дашборд</title>
+</head>
+<body>
+    <h1>Дашборд</h1>
+    <a href="{% url 'add_transaction' %}">Добавить транзакцию</a>
+    <hr>
+
+    <h2>Последние операции</h2>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Дата</th>
+                <th>Счет</th>
+                <th>Категория</th>
+                <th>Сумма</th>
+                <th>Комментарий</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction.timestamp|date:"d.m.Y H:i" }}</td>
+                <td>{{ transaction.account.name }}</td>
+                <td>{{ transaction.category.name }}</td>\
+                {% if transaction.category.type == 'EXPENSE' %}
+                    <td style="color: red;">-{{ transaction.amount }}</td>
+                {% else %}
+                    <td style="color: green;">+{{ transaction.amount }}</td>
+                {% endif %}
+                <td>{{ transaction.comment }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5">У вас пока нет ни одной транзакции.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
