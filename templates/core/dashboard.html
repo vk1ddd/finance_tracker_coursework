@@ -1,44 +1,88 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-T">
-    <title>Мои Финансы - Дашборд</title>
-</head>
-<body>
-    <h1>Дашборд</h1>
-    <a href="{% url 'add_transaction' %}">Добавить транзакцию</a>
-    <hr>
+{% extends 'core/base.html' %}
 
-    <h2>Последние операции</h2>
-    <table border="1">
-        <thead>
-            <tr>
-                <th>Дата</th>
-                <th>Счет</th>
-                <th>Категория</th>
-                <th>Сумма</th>
-                <th>Комментарий</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for transaction in transactions %}
-            <tr>
-                <td>{{ transaction.timestamp|date:"d.m.Y H:i" }}</td>
-                <td>{{ transaction.account.name }}</td>
-                <td>{{ transaction.category.name }}</td>\
-                {% if transaction.category.type == 'EXPENSE' %}
-                    <td style="color: red;">-{{ transaction.amount }}</td>
-                {% else %}
-                    <td style="color: green;">+{{ transaction.amount }}</td>
-                {% endif %}
-                <td>{{ transaction.comment }}</td>
-            </tr>
-            {% empty %}
-            <tr>
-                <td colspan="5">У вас пока нет ни одной транзакции.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
+{% block title %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>Последние операции</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'add_transaction' %}" class="btn btn-primary">Добавить транзакцию</a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <h4>Расходы по категориям</h4>
+        <canvas id="expensesChart"></canvas>
+    </div>
+    <div class="col-md-8">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Дата</th>
+                    <th>Счет</th>
+                    <th>Категория</th>
+                    <th>Сумма</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for transaction in transactions %}
+                <tr>
+                    <td>{{ transaction.timestamp|date:"d.m.Y" }}</td>
+                    <td>{{ transaction.account.name }}</td>
+                    <td>{{ transaction.category.name }}</td>
+                    {% if transaction.category.type == 'EXPENSE' %}
+                        <td class="text-danger fw-bold">-{{ transaction.amount }} ₽</td>
+                    {% else %}
+                        <td class="text-success fw-bold">+{{ transaction.amount }} ₽</td>
+                    {% endif %}
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center">У вас пока нет ни одной транзакции.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const ctx = document.getElementById('expensesChart').getContext('2d');
+
+    new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: {{ category_labels|safe }},
+            datasets: [{
+                label: 'Расходы',
+                data: {{ category_data|safe }},
+                backgroundColor: [
+                    'rgba(255, 99, 132, 0.7)',
+                    'rgba(54, 162, 235, 0.7)',
+                    'rgba(255, 206, 86, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(153, 102, 255, 0.7)',
+                    'rgba(255, 159, 64, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 99, 132, 1)',
+                    'rgba(54, 162, 235, 1)',
+                    'rgba(255, 206, 86, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(153, 102, 255, 1)',
+                    'rgba(255, 159, 64, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+        }
+    });
+</script>
+{% endblock %}

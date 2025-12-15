@@ -1,37 +1,46 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Добавить транзакцию</title>
-</head>
-<body>
-    <h1>Новая транзакция</h1>
-    <form method="post">
-        {% csrf_token %}
+{% extends 'core/base.html' %}
 
-        <label for="account">Счет:</label><br>
-        <select name="account" id="account" required>
-            {% for account in accounts %}
-                <option value="{{ account.id }}">{{ account.name }} (Баланс: {{ account.balance }})</option>
-            {% endfor %}
-        </select><br><br>
+{% block title %}Добавить транзакцию{% endblock %}
 
-        <label for="category">Категория:</label><br>
-        <select name="category" id="category" required>
-            {% for category in categories %}
-                <option value="{{ category.id }}">{{ category.name }} ({{ category.get_type_display }})</option>
-            {% endfor %}
-        </select><br><br>
-
-        <label for="amount">Сумма:</label><br>
-        <input type="number" name="amount" id="amount" step="0.01" required><br><br>
-
-        <label for="comment">Комментарий:</label><br>
-        <textarea name="comment" id="comment" rows="3"></textarea><br><br>
-
-        <button type="submit">Сохранить</button>
-    </form>
-    <br>
-    <a href="{% url 'dashboard' %}">Назад к списку</a>
-</body>
-</html>
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h3 class="card-title">Новая транзакция</h3>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="account" class="form-label">Счет:</label>
+                        <select name="account" id="account" class="form-select" required>
+                            {% for account in accounts %}
+                            <option value="{{ account.id }}">{{ account.name }} (Баланс: {{ account.balance }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="category" class="form-label">Категория:</label>
+                        <select name="category" id="category" class="form-select" required>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }} ({{ category.get_type_display }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Сумма:</label>
+                        <input type="number" name="amount" id="amount" step="0.01" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="comment" class="form-label">Комментарий:</label>
+                        <textarea name="comment" id="comment" rows="3" class="form-control"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success">Сохранить</button>
+                    <a href="{% url 'dashboard' %}" class="btn btn-secondary">Отмена</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
