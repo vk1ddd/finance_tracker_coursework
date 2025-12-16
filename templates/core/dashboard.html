@@ -3,10 +3,17 @@
 {% block title %}Дашборд{% endblock %}
 
 {% block content %}
-<div class="row mb-4">
+<div class="row mb-4 align-items-center">
     <div class="col-md-8">
-        <h2>Последние операции</h2>
+        <div class="d-flex align-items-center">
+            <h2 class="mb-0 me-3">Последние операции</h2>
+            <div class="btn-group">
+                <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-secondary">Экспорт в CSV</a>
+                <a href="{% url 'export_xlsx' %}" class="btn btn-sm btn-outline-secondary">Экспорт в XLSX</a>
+            </div>
+        </div>
     </div>
+
     <div class="col-md-4 text-end">
         <a href="{% url 'add_transaction' %}" class="btn btn-primary">Добавить транзакцию</a>
     </div>

@@ -7,6 +7,14 @@ import json
 
 from decimal import Decimal
 
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth import login
+
+import csv
+import openpyxl
+from django.http import HttpResponse
+
+
 @login_required
 def dashboard(request):
     transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
@@ -68,3 +76,60 @@ def dashboard(request):
         'category_data': json.dumps(category_data),
     }
     return render(request, 'core/dashboard.html', context)
+
+
+def register_view(request):
+    if request.method == 'POST':
+        form = UserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()  # Сохраняем нового пользователя
+            login(request, user)  # Сразу авторизуем его
+            return redirect('dashboard')  # И перенаправляем на дашборд
+    else:
+        form = UserCreationForm()
+
+    context = {'form': form}
+    return render(request, 'registration/register.html', context)
+
+
+
+
+
+@login_required
+def export_transactions_csv(request):
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = 'attachment; filename="transactions.csv"'
+    response.write(u'\ufeff'.encode('utf8'))
+
+    writer = csv.writer(response, delimiter=';')
+    writer.writerow(['Дата', 'Счет', 'Категория', 'Тип', 'Сумма', 'Комментарий'])
+
+    transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
+    for t in transactions:
+        writer.writerow(
+            [t.timestamp.strftime('%d.%m.%Y %H:%M'), t.account.name, t.category.name, t.category.get_type_display(),
+             t.amount, t.comment])
+
+    return response
+
+
+@login_required
+def export_transactions_xlsx(request):
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename="transactions.xlsx"'
+
+    workbook = openpyxl.Workbook()
+    worksheet = workbook.active
+    worksheet.title = 'Транзакции'
+
+    headers = ['Дата', 'Счет', 'Категория', 'Тип', 'Сумма', 'Комментарий']
+    worksheet.append(headers)
+
+    transactions = Transaction.objects.filter(user=request.user).order_by('-timestamp')
+    for t in transactions:
+        worksheet.append(
+            [t.timestamp.strftime('%d.%m.%Y %H:%M'), t.account.name, t.category.name, t.category.get_type_display(),
+             t.amount, t.comment])
+
+    workbook.save(response)
+    return response
