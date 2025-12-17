@@ -14,6 +14,8 @@ import csv
 import openpyxl
 from django.http import HttpResponse
 
+from datetime import date
+
 
 @login_required
 def dashboard(request):
@@ -23,7 +25,7 @@ def dashboard(request):
     }
     return render(request, 'core/dashboard.html', context)
 
-@login_required
+
 def add_transaction(request):
     if request.method == 'POST':
         account_id = request.POST['account']
@@ -31,15 +33,22 @@ def add_transaction(request):
         amount = request.POST['amount']
         comment = request.POST['comment']
 
-        account = Account.objects.get(id=account_id)
-        category = Category.objects.get(id=category_id)
+        transaction_date_str = request.POST['transaction_date']
+        if transaction_date_str:
+            transaction_date = transaction_date_str
+        else:
+            transaction_date = date.today()
+
+        account = Account.objects.get(id=account_id, user=request.user)
+        category = Category.objects.get(id=category_id, user=request.user)
 
         Transaction.objects.create(
             user=request.user,
             account=account,
             category=category,
             amount=amount,
-            comment=comment
+            comment=comment,
+            timestamp=transaction_date
         )
 
         if category.type == 'EXPENSE':
@@ -49,12 +58,14 @@ def add_transaction(request):
         account.save()
 
         return redirect('dashboard')
+
     else:
         accounts = Account.objects.filter(user=request.user)
         categories = Category.objects.filter(user=request.user)
         context = {
             'accounts': accounts,
             'categories': categories,
+            'today': date.today().strftime('%Y-%m-%d'),
         }
         return render(request, 'core/add_transaction.html', context)
 
