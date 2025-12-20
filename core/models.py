@@ -90,3 +90,27 @@ class GoalContribution(models.Model):
 
     def __str__(self):
         return f"{self.amount} towards {self.goal.name}"
+
+class Debt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    DEBT_TYPE_CHOICES = [
+        ('LEND', 'Я дал в долг'),
+        ('BORROW', 'Я взял в долг'),
+    ]
+    type = models.CharField(max_length=6, choices=DEBT_TYPE_CHOICES, verbose_name="Тип долга")
+    person = models.CharField(max_length=100, verbose_name="Кому / У кого")
+    amount = models.DecimalField(max_digits=15, decimal_places=2, verbose_name="Сумма")
+    description = models.CharField(max_length=200, blank=True, null=True, verbose_name="Описание")
+    due_date = models.DateField(blank=True, null=True, verbose_name="Дата возврата")
+    is_paid = models.BooleanField(default=False, verbose_name="Погашен")
+
+    def __str__(self):
+        return f"{self.person} - {self.amount}"
+
+class SavedFilter(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    name = models.CharField(max_length=100, verbose_name="Название фильтра")
+    parameters = models.JSONField(verbose_name="Параметры фильтра")
+
+    def __str__(self):
+        return self.name

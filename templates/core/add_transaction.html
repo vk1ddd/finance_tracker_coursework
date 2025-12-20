@@ -43,6 +43,11 @@
                         <label for="comment" class="form-label">Комментарий:</label>
                         <textarea name="comment" id="comment" rows="3" class="form-control"></textarea>
                     </div>
+                    <div class="mb-3">
+                        <label for="tags" class="form-label">Теги (через запятую):</label>
+                        <input type="text" name="tags" id="tags" class="form-control">
+                        <div class="form-text">Например: отпуск, машина, ремонт</div>
+                    </div>
                     <button type="submit" class="btn btn-success">Сохранить</button>
                     <a href="{% url 'dashboard' %}" class="btn btn-secondary">Отмена</a>
                 </form>

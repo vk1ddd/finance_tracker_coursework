@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Transaction, Account, Category, Budget
+from .models import Transaction, Account, Category, Budget, Tag
 from django.contrib.auth.decorators import login_required
 
 from django.db.models import Sum
@@ -104,17 +104,19 @@ def add_transaction(request):
         category_id = request.POST['category']
         amount = request.POST['amount']
         comment = request.POST['comment']
-
         transaction_date_str = request.POST['transaction_date']
+
+        tags_string = request.POST.get('tags', '')
+
         if transaction_date_str:
             transaction_date = transaction_date_str
         else:
             transaction_date = date.today()
 
-        account = Account.objects.get(id=account_id, user=request.user)
-        category = Category.objects.get(id=category_id, user=request.user)
+        account = get_object_or_404(Account, id=account_id, user=request.user)
+        category = get_object_or_404(Category, id=category_id, user=request.user)
 
-        Transaction.objects.create(
+        new_transaction = Transaction(
             user=request.user,
             account=account,
             category=category,
@@ -122,6 +124,13 @@ def add_transaction(request):
             comment=comment,
             timestamp=transaction_date
         )
+        new_transaction.save()
+
+        if tags_string:
+            tag_names = [name.strip() for name in tags_string.split(',') if name.strip()]
+            for name in tag_names:
+                tag, created = Tag.objects.get_or_create(user=request.user, name=name)
+                new_transaction.tags.add(tag)
 
         if category.type == 'EXPENSE':
             account.balance -= Decimal(amount)

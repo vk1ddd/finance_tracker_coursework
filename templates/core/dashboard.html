@@ -79,6 +79,7 @@
                     <th>Счет</th>
                     <th>Категория</th>
                     <th>Сумма</th>
+                    <th>Теги</th>
                     <th>Действия</th>
                 </tr>
             </thead>
@@ -93,6 +94,11 @@
                     {% else %}
                         <td class="text-success fw-bold">+{{ transaction.amount|floatformat:2 }} ₽</td>
                     {% endif %}
+                    <td>
+                        {% for tag in transaction.tags.all %}
+                            <span class="badge bg-secondary">{{ tag.name }}</span>
+                        {% endfor %}
+                    </td>
                     <td>
                     <button type="button" class="btn btn-sm btn-outline-danger delete-btn"
                             data-bs-toggle="modal"
