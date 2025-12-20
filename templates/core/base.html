@@ -12,6 +12,14 @@
             <a class="navbar-brand" href="{% url 'dashboard' %}">Finance Tracker</a>
 
 <div class="collapse navbar-collapse">
+    <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard' %}">Дашборд</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'budgets' %}">Бюджеты</a>
+        </li>
+    </ul>
     <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         {% if user.is_authenticated %}
             <li class="nav-item">

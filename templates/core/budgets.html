@@ -1,0 +1,37 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Управление бюджетами{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col text-center">
+        <a href="?year={{ prev_month.year }}&month={{ prev_month.month }}" class="btn btn-outline-dark">&laquo; Предыдущий</a>
+        <h2 class="d-inline-block mx-4">Бюджет на {{ current_month|date:"F Y" }}</h2>
+        <a href="?year={{ next_month.year }}&month={{ next_month.month }}" class="btn btn-outline-dark">Следующий &raquo;</a>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                Установите лимиты расходов (оставьте поле пустым, чтобы не устанавливать лимит)
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% for item in categories_with_budgets %}
+                    <div class="input-group mb-3">
+                        <span class="input-group-text" style="width: 200px;">{{ item.category.name }}</span>
+                        <input type="number" step="0.01" class="form-control" name="limit_{{ item.category.id }}" value="{{ item.limit|default_if_none:'' }}">
+                        <input type="hidden" name="category_id" value="{{ item.category.id }}">
+                        <span class="input-group-text">₽</span>
+                    </div>
+                    {% endfor %}
+                    <button type="submit" class="btn btn-primary mt-3">Сохранить бюджеты</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

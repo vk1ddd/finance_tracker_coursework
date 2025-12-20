@@ -7,4 +7,6 @@ urlpatterns = [
     path('register/', views.register_view, name='register'),
     path('export/csv/', views.export_transactions_csv, name='export_csv'),
     path('export/xlsx/', views.export_transactions_xlsx, name='export_xlsx'),
+    path('budgets/', views.manage_budgets, name='budgets'),
+    path('transaction/delete/<int:transaction_id>/', views.delete_transaction, name='delete_transaction'),
 ]
