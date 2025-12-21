@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Transaction, Account, Category, Budget, Tag
+from .models import Transaction, Account, Category, Budget, Tag, SavedFilter, Debt
 from django.contrib.auth.decorators import login_required
 
 from django.db.models import Sum
@@ -24,19 +24,26 @@ from django.shortcuts import render, redirect, get_object_or_404
 @login_required
 def dashboard(request):
     today = date.today()
-
     year = request.GET.get('year', today.year)
     month = request.GET.get('month', today.month)
-
     year, month = int(year), int(month)
-
     selected_month_start = date(year, month, 1)
+
+    selected_category_ids = request.GET.getlist('category')
+    tags_string = request.GET.get('tags', '')
 
     transactions_this_month = Transaction.objects.filter(
         user=request.user,
         timestamp__year=year,
         timestamp__month=month
     )
+
+    if selected_category_ids:
+        transactions_this_month = transactions_this_month.filter(category__id__in=selected_category_ids)
+
+    if tags_string:
+        tag_names = [name.strip() for name in tags_string.split(',') if name.strip()]
+        transactions_this_month = transactions_this_month.filter(tags__name__in=tag_names).distinct()
 
     income_this_month = transactions_this_month.filter(category__type='INCOME').aggregate(Sum('amount'))[
                             'amount__sum'] or Decimal('0.00')
@@ -47,20 +54,29 @@ def dashboard(request):
     if savings_this_month < 0:
         savings_this_month = 0
 
-    total_balance = Account.objects.filter(user=request.user).aggregate(Sum('balance'))['balance__sum'] or 0.00
+    total_balance = Account.objects.filter(user=request.user).aggregate(Sum('balance'))['balance__sum'] or Decimal(
+        '0.00')
 
     category_expenses = transactions_this_month.filter(category__type='EXPENSE').values('category__name').annotate(
         total=Sum('amount')).order_by('-total')
-
     category_labels = [item['category__name'] for item in category_expenses]
     category_data = [float(item['total']) for item in category_expenses]
 
     budgets = Budget.objects.filter(user=request.user, month__year=year, month__month=month)
-    expenses_map = {item['category__name']: item['total'] for item in category_expenses}
+
+    all_expenses_this_month = Transaction.objects.filter(
+        user=request.user,
+        timestamp__year=year,
+        timestamp__month=month,
+        category__type='EXPENSE'
+    )
+    all_category_expenses = all_expenses_this_month.values('category__name').annotate(total=Sum('amount'))
+
+    expenses_map = {item['category__name']: item['total'] for item in all_category_expenses}
 
     budget_progress_list = []
     for budget in budgets:
-        spent = expenses_map.get(budget.category.name, 0)
+        spent = expenses_map.get(budget.category.name, Decimal('0.00'))
         percent = int((spent / budget.amount) * 100) if budget.amount > 0 else 0
         budget_progress_list.append({
             'category_name': budget.category.name,
@@ -70,16 +86,13 @@ def dashboard(request):
         })
 
     prev_month_date = selected_month_start - timedelta(days=1)
-    prev_month = {
-        'year': prev_month_date.year,
-        'month': prev_month_date.month
-    }
-
+    prev_month = {'year': prev_month_date.year, 'month': prev_month_date.month}
     next_month_date = (selected_month_start.replace(day=28) + timedelta(days=4)).replace(day=1)
-    next_month = {
-        'year': next_month_date.year,
-        'month': next_month_date.month
-    }
+    next_month = {'year': next_month_date.year, 'month': next_month_date.month}
+
+    user_categories = Category.objects.filter(user=request.user)
+
+    saved_filters = SavedFilter.objects.filter(user=request.user)
 
     context = {
         'transactions': transactions_this_month.order_by('-timestamp', '-id'),
@@ -92,7 +105,11 @@ def dashboard(request):
         'current_month': selected_month_start,
         'prev_month': prev_month,
         'next_month': next_month,
+        'user_categories': user_categories,
+        'selected_category_ids': [int(i) for i in selected_category_ids],
+        'tags_string': tags_string,
         'budget_progress_list': budget_progress_list,
+        'saved_filters': saved_filters,
     }
 
     return render(request, 'core/dashboard.html', context)
@@ -275,3 +292,91 @@ def delete_transaction(request, transaction_id):
         transaction.delete()
 
     return redirect('dashboard')
+
+@login_required
+def save_filter(request):
+    if request.method == 'POST':
+        filter_name = request.POST.get('filter_name')
+        category_ids = request.POST.getlist('category')
+        tags_string = request.POST.get('tags', '')
+
+        if filter_name:
+            parameters = {
+                'category': category_ids,
+                'tags': tags_string,
+            }
+            SavedFilter.objects.create(
+                user=request.user,
+                name=filter_name,
+                parameters=parameters
+            )
+    return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
+
+
+@login_required
+def manage_debts(request):
+    if request.method == 'POST':
+        debt_type = request.POST.get('type')
+        person = request.POST.get('person')
+        amount = request.POST.get('amount')
+        description = request.POST.get('description')
+
+        if debt_type and person and amount:
+            Debt.objects.create(
+                user=request.user,
+                type=debt_type,
+                person=person,
+                amount=Decimal(amount),
+                description=description
+            )
+        return redirect('manage_debts')
+
+    lent_debts = Debt.objects.filter(user=request.user, type='LEND', is_paid=False)
+    borrowed_debts = Debt.objects.filter(user=request.user, type='BORROW', is_paid=False)
+
+    user_accounts = Account.objects.filter(user=request.user)
+
+    context = {
+        'lent_debts': lent_debts,
+        'borrowed_debts': borrowed_debts,
+        'user_accounts': user_accounts,
+    }
+    return render(request, 'core/debts.html', context)
+
+
+@login_required
+def pay_debt(request, debt_id):
+    debt = get_object_or_404(Debt, id=debt_id, user=request.user)
+
+    if request.method == 'POST':
+        account_id = request.POST.get('account')
+        if not account_id:
+            return redirect('manage_debts')
+
+        account = get_object_or_404(Account, id=account_id, user=request.user)
+
+        if debt.type == 'LEND':
+            category = Category.objects.filter(user=request.user, name="Возврат долга").first()
+            if not category:
+                category = Category.objects.create(user=request.user, name="Возврат долга", type='INCOME')
+
+            timestamp = date.today()
+            Transaction.objects.create(user=request.user, account=account, category=category, amount=debt.amount,
+                                       comment=f"Возврат долга от {debt.person}", timestamp=date.today())
+            account.balance += debt.amount
+
+        elif debt.type == 'BORROW':
+            category = Category.objects.filter(user=request.user, name="Отдача долга").first()
+            if not category:
+                category = Category.objects.create(user=request.user, name="Отдача долга", type='EXPENSE')
+
+            timestamp = date.today()
+            Transaction.objects.create(user=request.user, account=account, category=category, amount=debt.amount,
+                                       comment=f"Отдача долга {debt.person}", timestamp=date.today())
+            account.balance -= debt.amount
+
+        account.save()
+        debt.is_paid = True
+        debt.save()
+
+    return redirect('manage_debts')

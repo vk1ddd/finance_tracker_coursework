@@ -12,6 +12,57 @@
     </div>
 </div>
 
+
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <input type="hidden" name="year" value="{{ current_month.year }}">
+            <input type="hidden" name="month" value="{{ current_month.month }}">
+
+            <div class="col-md-5">
+                <label for="category" class="form-label">Категории</label>
+                <select name="category" id="category" class="form-select" multiple size="3">
+                    {% for category in user_categories %}
+                        <option value="{{ category.id }}" {% if category.id in selected_category_ids %}selected{% endif %}>
+                            {{ category.name }} ({{ category.get_type_display }})
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label for="tags" class="form-label">Теги (через запятую)</label>
+                <input type="text" name="tags" id="tags" class="form-control" value="{{ tags_string }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Применить</button>
+                <a href="{% url 'dashboard' %}?year={{ current_month.year }}&month={{ current_month.month }}" class="btn btn-link btn-sm w-100 mt-1">Сбросить</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end mb-4">
+    <div class="dropdown me-2">
+        <button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            Применить сохраненный фильтр
+        </button>
+        <ul class="dropdown-menu">
+            {% for filter in saved_filters %}
+                <li>
+                    <a class="dropdown-item" href="?year={{ current_month.year }}&month={{ current_month.month }}{% for cat_id in filter.parameters.category %}&category={{ cat_id }}{% endfor %}{% if filter.parameters.tags %}&tags={{ filter.parameters.tags|urlencode }}{% endif %}">
+                        {{ filter.name }}
+                    </a>
+                </li>
+            {% empty %}
+                <li><a class="dropdown-item disabled" href="#">Нет сохраненных фильтров</a></li>
+            {% endfor %}
+        </ul>
+    </div>
+    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#saveFilterModal">
+        Сохранить текущий фильтр
+    </button>
+</div>
+
 <div class="row mb-4 g-4">
     <div class="col-md-3">
         <div class="card text-center">
@@ -50,7 +101,6 @@
 <div class="row mb-4 align-items-center">
     <div class="col-md-8">
         <div class="d-flex align-items-center">
-            <h3 class="mb-0 me-3">Операции за месяц</h3>
             <div class="btn-group">
                 <a href="{% url 'export_csv' %}" class="btn btn-sm btn-outline-secondary">Экспорт в CSV</a>
                 <a href="{% url 'export_xlsx' %}" class="btn btn-sm btn-outline-secondary">Экспорт в XLSX</a>
@@ -141,6 +191,33 @@
             <p class="text-muted">На этот месяц бюджеты не установлены. Вы можете добавить их на странице "Бюджеты".</p>
         {% endfor %}
     </div>
+</div>
+
+<div class="modal fade" id="saveFilterModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form action="{% url 'save_filter' %}" method="post">
+          {% csrf_token %}
+          {% for cat_id in selected_category_ids %}
+              <input type="hidden" name="category" value="{{ cat_id }}">
+          {% endfor %}
+          <input type="hidden" name="tags" value="{{ tags_string }}">
+
+          <div class="modal-header">
+            <h5 class="modal-title">Сохранить фильтр</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <label for="filter_name" class="form-label">Название для фильтра:</label>
+            <input type="text" name="filter_name" class="form-control" required>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-primary">Сохранить</button>
+          </div>
+      </form>
+    </div>
+  </div>
 </div>
 
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1">

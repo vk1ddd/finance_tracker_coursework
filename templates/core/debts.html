@@ -1,0 +1,125 @@
+{% extends 'core/base.html' %}
+{% load humanize %}
+
+
+{% block title %}Управление долгами{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <h3>Новый долг</h3>
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="type" class="form-label">Тип долга</label>
+                        <select name="type" id="type" class="form-select" required>
+                            <option value="LEND">Я дал в долг</option>
+                            <option value="BORROW">Я взял в долг</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="person" class="form-label">Кому / У кого</label>
+                        <input type="text" name="person" id="person" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Сумма</label>
+                        <input type="number" step="0.01" name="amount" id="amount" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание (за что)</label>
+                        <input type="text" name="description" id="description" class="form-control">
+                    </div>
+                    <button type="submit" class="btn btn-primary">Добавить долг</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <h3>Мне должны</h3>
+        <ul class="list-group mb-4">
+            {% for debt in lent_debts %}
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ debt.person }}</strong> - {{ debt.amount|floatformat:2 }} ₽
+                        <small class="d-block text-muted">{{ debt.description|default:"Без описания" }}</small>
+                    </div>
+
+                    <button class="btn btn-sm btn-success pay-debt-btn" data-bs-toggle="modal" data-bs-target="#payDebtModal" data-url="{% url 'pay_debt' debt.id %}" data-text="Подтвердите, что {{ debt.person }} вернул(а) вам долг.">Мне вернули</button>
+
+                </li>
+            {% empty %}
+                <li class="list-group-item">Никто вам не должен.</li>
+            {% endfor %}
+        </ul>
+
+        <h3>Я должен</h3>
+        <ul class="list-group">
+            {% for debt in borrowed_debts %}
+                 <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong>{{ debt.person }}</strong> - {{ debt.amount|floatformat:2 }} ₽
+                         <small class="d-block text-muted">{{ debt.description|default:"Без описания" }}</small>
+                    </div>
+
+                    <button class="btn btn-sm btn-warning pay-debt-btn" data-bs-toggle="modal" data-bs-target="#payDebtModal" data-url="{% url 'pay_debt' debt.id %}" data-text="Подтвердите, что вы отдали долг {{ debt.person }}.">Я отдал</button>
+
+                </li>
+            {% empty %}
+                 <li class="list-group-item">Вы никому не должны.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="modal fade" id="payDebtModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="payDebtForm" method="post">
+          {% csrf_token %}
+          <div class="modal-header">
+            <h5 class="modal-title" id="payDebtModalLabel">Погашение долга</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <p id="payDebtModalText"></p>
+            <div class="mb-3">
+                <label for="account" class="form-label">Выберите счет для операции:</label>
+                <select name="account" class="form-select" required>
+                    {% for account in user_accounts %}
+                        <option value="{{ account.id }}">{{ account.name }} ({{ account.balance|floatformat:2 }} ₽)</option>
+                    {% endfor %}
+                </select>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+            <button type="submit" class="btn btn-success">Подтвердить</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+{% block scripts %}
+
+<script>
+    const payDebtModal = document.getElementById('payDebtModal');
+    if (payDebtModal) {
+        const payDebtForm = document.getElementById('payDebtForm');
+        const payDebtModalText = document.getElementById('payDebtModalText');
+
+        payDebtModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const url = button.getAttribute('data-url');
+            const text = button.getAttribute('data-text');
+
+            payDebtForm.setAttribute('action', url);
+            payDebtModalText.textContent = text;
+        });
+    }
+</script>
+{% endblock %}

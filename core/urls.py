@@ -9,4 +9,7 @@ urlpatterns = [
     path('export/xlsx/', views.export_transactions_xlsx, name='export_xlsx'),
     path('budgets/', views.manage_budgets, name='budgets'),
     path('transaction/delete/<int:transaction_id>/', views.delete_transaction, name='delete_transaction'),
+    path('filters/save/', views.save_filter, name='save_filter'),
+    path('debts/', views.manage_debts, name='manage_debts'),
+    path('debts/pay/<int:debt_id>/', views.pay_debt, name='pay_debt'),
 ]
