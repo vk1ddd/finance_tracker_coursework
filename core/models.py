@@ -9,7 +9,7 @@ class Account(models.Model):
     def __str__(self):
         return self.name
 
-# иконки категорий
+# иконки категорий (удалить)
 class CategoryIcon(models.Model):
     name = models.CharField(max_length=50, unique=True)
     svg_code = models.TextField(blank=True, null=True)

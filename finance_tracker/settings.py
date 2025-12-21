@@ -131,3 +131,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+YADISK_TOKEN = 'y0__xCD69_kAhjHvTwgncbg4BWNEjn0HBmy83871bZCXaRKr8ybGA'
+YADISK_APP_FOLDER = 'FinanceTrackerBackup'

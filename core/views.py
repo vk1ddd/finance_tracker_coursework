@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from .models import Transaction, Account, Category, Budget, Tag, SavedFilter, Debt
+from .models import Transaction, Account, Category, Budget, Tag, SavedFilter, Debt, FinancialGoal, GoalContribution, ScheduledTransaction
 from django.contrib.auth.decorators import login_required
 
 from django.db.models import Sum
@@ -380,3 +380,104 @@ def pay_debt(request, debt_id):
         debt.save()
 
     return redirect('manage_debts')
+
+
+@login_required
+def manage_goals(request):
+    if request.method == 'POST':
+        name = request.POST.get('name')
+        target_amount = request.POST.get('target_amount')
+        if name and target_amount:
+            FinancialGoal.objects.create(
+                user=request.user,
+                name=name,
+                target_amount=Decimal(target_amount)
+            )
+        return redirect('manage_goals')
+
+    goals = FinancialGoal.objects.filter(user=request.user)
+
+    for goal in goals:
+        if goal.target_amount > 0:
+            percent = (goal.current_amount / goal.target_amount) * 100
+            goal.percent = int(percent)
+        else:
+            goal.percent = 0
+
+    user_accounts = Account.objects.filter(user=request.user)
+    context = {
+        'goals': goals,
+        'user_accounts': user_accounts
+    }
+    return render(request, 'core/goals.html', context)
+
+@login_required
+def contribute_to_goal(request, goal_id):
+    goal = get_object_or_404(FinancialGoal, id=goal_id, user=request.user)
+    if request.method == 'POST':
+        amount = Decimal(request.POST.get('amount'))
+        account_id = request.POST.get('account')
+
+        if amount > 0 and account_id:
+            account = get_object_or_404(Account, id=account_id, user=request.user)
+
+            if account.balance >= amount:
+                GoalContribution.objects.create(goal=goal, amount=amount)
+
+                goal.current_amount += amount
+                goal.save()
+
+                category, _ = Category.objects.get_or_create(user=request.user, name="Накопления и цели",
+                                                             defaults={'type': 'EXPENSE'})
+                Transaction.objects.create(user=request.user, account=account, category=category,
+                                           amount=amount, comment=f"Вложение в цель: {goal.name}", timestamp=date.today())
+
+                account.balance -= amount
+                account.save()
+
+    return redirect('manage_goals')
+
+@login_required
+def manage_scheduled(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account')
+        category_id = request.POST.get('category')
+        amount = request.POST.get('amount')
+        description = request.POST.get('description')
+        frequency = request.POST.get('frequency')
+        next_due_date = request.POST.get('next_due_date')
+
+        if all([account_id, category_id, amount, description, frequency, next_due_date]):
+            account = get_object_or_404(Account, id=account_id, user=request.user)
+            category = get_object_or_404(Category, id=category_id, user=request.user)
+
+            ScheduledTransaction.objects.create(
+                user=request.user,
+                account=account,
+                category=category,
+                amount=Decimal(amount),
+                description=description,
+                frequency=frequency,
+                next_due_date=next_due_date
+            )
+
+        return redirect('manage_scheduled')
+
+    scheduled_transactions = ScheduledTransaction.objects.filter(user=request.user)
+    user_accounts = Account.objects.filter(user=request.user)
+    expense_categories = Category.objects.filter(user=request.user, type='EXPENSE')
+
+    context = {
+        'scheduled_transactions': scheduled_transactions,
+        'user_accounts': user_accounts,
+        'expense_categories': expense_categories,
+        'today': date.today().strftime('%Y-%m-%d'),
+    }
+    return render(request, 'core/scheduled.html', context)
+
+@login_required
+def delete_scheduled(request, st_id):
+    scheduled_transaction = get_object_or_404(ScheduledTransaction, id=st_id, user=request.user)
+    if request.method == 'POST':
+        scheduled_transaction.delete()
+    return redirect('manage_scheduled')

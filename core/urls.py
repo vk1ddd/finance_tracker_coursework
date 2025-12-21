@@ -12,4 +12,8 @@ urlpatterns = [
     path('filters/save/', views.save_filter, name='save_filter'),
     path('debts/', views.manage_debts, name='manage_debts'),
     path('debts/pay/<int:debt_id>/', views.pay_debt, name='pay_debt'),
+    path('goals/', views.manage_goals, name='manage_goals'),
+    path('goals/contribute/<int:goal_id>/', views.contribute_to_goal, name='contribute_to_goal'),
+    path('scheduled/', views.manage_scheduled, name='manage_scheduled'),
+    path('scheduled/delete/<int:st_id>/', views.delete_scheduled, name='delete_scheduled'),
 ]

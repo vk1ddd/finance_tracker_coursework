@@ -1,0 +1,87 @@
+{% extends 'core/base.html' %}
+{% block title %}Регулярные платежи{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-4">
+        <h3>Новый регулярный платеж</h3>
+        <div class="card">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Описание</label>
+                        <input type="text" name="description" class="form-control" required placeholder="Напр., Оплата интернета">
+                    </div>
+                    <div class="mb-3">
+                        <label for="amount" class="form-label">Сумма</label>
+                        <input type="number" step="0.01" name="amount" class="form-control" required>
+                    </div>
+                     <div class="mb-3">
+                        <label for="account" class="form-label">Счет списания</label>
+                        <select name="account" class="form-select" required>
+                            {% for account in user_accounts %}
+                                <option value="{{ account.id }}">{{ account.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                     <div class="mb-3">
+                        <label for="category" class="form-label">Категория расхода</label>
+                        <select name="category" class="form-select" required>
+                            {% for category in expense_categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Периодичность</label>
+                        <select name="frequency" class="form-select" required>
+                            <option value="monthly">Ежемесячно</option>
+                            <option value="yearly">Ежегодно</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="next_due_date" class="form-label">Дата первого списания</label>
+                        <input type="date" name="next_due_date" class="form-control" value="{{ today }}" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8">
+        <h3>Мои шаблоны автоплатежей</h3>
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>Описание</th>
+                    <th>Сумма</th>
+                    <th>Категория</th>
+                    <th>Следующее списание</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in scheduled_transactions %}
+                <tr>
+                    <td>{{ st.description }}</td>
+                    <td>{{ st.amount|floatformat:2 }} ₽</td>
+                    <td>{{ st.category.name }}</td>
+                    <td>{{ st.next_due_date|date:"d.m.Y" }}</td>
+                    <td>
+                        <form action="{% url 'delete_scheduled' st.id %}" method="post" onsubmit="return confirm('Вы уверены, что хотите удалить этот шаблон?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">Удалить</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center text-muted">У вас нет настроенных регулярных платежей.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

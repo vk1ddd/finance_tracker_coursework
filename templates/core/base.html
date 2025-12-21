@@ -20,8 +20,14 @@
             <a class="nav-link" href="{% url 'budgets' %}">Бюджеты</a>
         </li>
         <li class="nav-item">
-            <a class="nav-link" href="{% url 'manage_debts' %}">Долги</a> <!-- <-- ДОБАВЬ ЭТО -->
+            <a class="nav-link" href="{% url 'manage_debts' %}">Долги</a>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'manage_goals' %}">Цели</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" href="{% url 'manage_scheduled' %}">Автоплатежи</a>
+        </li>
+
     </ul>
     <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         {% if user.is_authenticated %}
